@@ -4,14 +4,149 @@
 {% block content %}
 
 <div class="jumbotron text-center">
-  <div class="container">
-    <h1>Indian Language Translator</h1>
-    <p>Translates Indian Languages in real-time</p>
-  </div>
+	<div class="container">
+		<h1>Indian Language Translator</h1>
+		<p>Translates Indian Languages in real-time</p>
+	</div>
 </div>
 <div class="container">
-  <hr>
-  <div>
-  </div>
+	<hr>
+	<div>
+		<h2>Translation Page</h2>
+		<div class="translationContainer">
+			<div class="inputDiv">
+				<p>Input Text</p>
+				<textarea rows="10" cols="30" id="inputText"></textarea>
+			</div>
+			<div>
+				<select id="target-script-choice">
+					<option selected value="base">Select Target Script</option>
+					<option value="devanagari">Devanagari</option>
+					<option value="gujarati">Gujarati</option>
+				</select>
+			</div>
+			<div class="outputDiv">
+				<p>Output Text</p>
+				<textarea rows="10" cols="30" id="outputText"></textarea>
+			</div>
+			<div class="unicodeDecimalDiv">
+				<p>Unicode Decimal Text</p>
+				<textarea rows="5" cols="30" id="unicodeDecimalText"></textarea>
+			</div>
+			<div class="unicodeHexDiv">
+				<p>Unicode Hex Text</p>
+				<textarea rows="5" cols="30" id="unicodeHexText"></textarea>
+			</div>
+			<div class="IdentifiedScriptsDiv">
+				<p>Identified Scripts</p>
+				<textarea rows="5" cols="30" id="identifiedScriptsText"></textarea>
+			</div>
+		</div>
+		<script type="text/javascript">
+			// Reference: unicode.org/charts/
+			// TODO: Account for unselected value as well - Select Target Script
+			// Enums with Unicode Script Codes
+			var SCRIPT_CODES = {
+				Devanagari: { value: 0, name: "Devanagari", minrange: '0900', maxrange: '097F', regexString: /[\u0900-\u097F]+/g },
+				Bengali: { value: 1, name: "Bengali", minrange: '0980', maxrange: '09FF', regexString: /[\u0980-\u09FF]+/g },
+				Gurmukhi: { value: 2, name: "Gurmukhi", minrange: '0A00', maxrange: '0A7F', regexString: /[\u0A00-\u0A7F]+/g },
+				Gujarati: { value: 3, name: "Gujarati", minrange: '0A80', maxrange: '0AFF', regexString: /[\u0A80-\u0AFF]+/g },
+				Tamil: { value: 4, name: "Tamil", minrange: '0B80', maxrange: '0BFF', regexString: /[\u0B80-\u0BFF]+/g },
+				Kannada: { value: 5, name: "Kannada", minrange: '0C80', maxrange: '0CFF', regexString: /[\u0C80-\u0CFF]+/g },
+				Malayalam: { value: 6, name: "Malayalam", minrange: '0D00', maxrange: '0D7F', regexString: /[\u0D00-\u0D7F]+/g },
+			};
+			var TARGET_SCRIPT;
+			// Code to inject all the SCRIPT_CODES into the Target Language Dropdown
+			$(document).ready(function () {
+				var $scriptsDropdown = $("#target-script-choice");
+				// TODO: 1. Find out a better alternative in place of for loop
+				// 2. Change the order of Scripts assignment [Currently it is last to first]
+				var scripts = Object.keys(SCRIPT_CODES), totalCost = 0;
+				// Find out if the current character falls under the unicode range of any defined script
+				for (var i = scripts.length; i--;) {
+					// Assign the current script present at ith location to the current script variable
+					currentScript = SCRIPT_CODES[scripts[i]];
+					// Inject the current script inside the Scripts Option Set Dropdown
+					$scriptsDropdown.append("<option value=" + currentScript.value + ">" + currentScript.name + "</option>");
+				}
+				// Make Devanagari the default script
+				TARGET_SCRIPT = SCRIPT_CODES.Devanagari;
+			});
+			// Handler for target language dropdown. Triggered after user changes the target language.
+			$("#target-script-choice").change(function () {
+				//var $secondChoice = $("#second-choice");
+				console.log($(this).val() + ' ' + $("#target-script-choice :selected").text());
+				// TODO: Find out the exact Script Code based on selected value from user.
+				//TARGET_SCRIPT = SCRIPT_CODES.Devanagari;
+			});
+			// Handler for Input Text area. Triggered whenever user changes the input text. 
+			$('#inputText').bind('keypress keyup keydown blur', function () {
+				//debugger;
+				var inputText = $(this).val();
+				var unicodeText = inputText;
+				// Initialize string variables
+				var outputString = '';
+				var unicodeDecimalString = '';
+				var unicodeHexString = '';
+				var identifiedScriptsString = '';
+				// Loop through each character of the input text
+				for (position = 0; position < unicodeText.length; position++) {
+					// Obtain the Unicode of the current character in Decimal format
+					var character = unicodeText.charAt(position);
+					var code = unicodeText.charCodeAt(position);
+					unicodeDecimalString += code + ' ';
+					// Obtain the Unicode of the current character in Hexa-Decimal format
+					var hexString = decimalToHex(code, 4);
+					// langCode stores the enum value for the Unicode Script Code of the current character
+					var currentScript;
+					// TODO: Find out a better alternative in place of for loop
+					var scripts = Object.keys(SCRIPT_CODES), totalCost = 0;
+					// Find out if the current character falls under the unicode range of any defined script
+					for (var i = scripts.length; i--;) {
+						// Assign the current script present at ith location to the current script variable
+						currentScript = SCRIPT_CODES[scripts[i]];
+						//var regexString = /[\u0900-\u097F]+/g;
+						//if( character.match(/[\u0900-\u097F]+/g) )
+						//if (character.match("/[\\u" + SCRIPT_CODES.Devanagari.minrange + "-\\u" + SCRIPT_CODES.Devanagari.maxrange + "]+/g"))
+						// Check if the current character falls under the Unicode range for the currentScript
+						if (character.match(currentScript.regexString)) {
+							// Add the current script to the list of identified scripts
+							identifiedScriptsString += currentScript.name + ' ';
+						}
+						// If the Target Script doesnt match the currentScript, convert the current character to the target scripts unicode
+						if (TARGET_SCRIPT != currentScript) {
+							// Calculate Unicode offset 
+							var unicodeOffset;
+							var targetScriptMinRange = "0x" + TARGET_SCRIPT.minrange;
+							var currentScriptMinRange = "0x" + currentScript.minrange;
+							var unicodeDiff = (targetScriptMinRange - currentScriptMinRange) & 0xffff;
+							console.log("TARGET_SCRIPT: " + TARGET_SCRIPT.name + ' : ' + targetScriptMinRange + ' ' + "CurrentScript: " + currentScript.name + ' : ' + currentScriptMinRange);
+							console.log("Unicode diff:" + unicodeDiff.toString(16));
+							// Convert the unicode of the current character
+						}
+					}
+					unicodeHexString += hexString + ' ';
+					// Append the Integer Unicode value to the output string that would get displayed in Output Div
+					outputString += String.fromCharCode(code);
+				}
+				// Update Output Div
+				$('#outputText').val(outputString);
+				// Update Unicode Divs
+				$('#unicodeDecimalText').val(unicodeDecimalString);
+				$('#unicodeHexText').val(unicodeHexString);
+				// Update Identified Scripts Div
+				$('#identifiedScriptsText').val(identifiedScriptsString);
+			});
+			function decimalToHex(d, padding) {
+				var hex = Number(d).toString(16);
+				padding = typeof (padding) === "undefined" || padding === null ? padding = 2 : padding;
+				while (hex.length < padding) {
+					hex = "0" + hex;
+				}
+				return hex;
+			}
+		</script>
+
+	</div>
 </div>
 {% endblock %}
