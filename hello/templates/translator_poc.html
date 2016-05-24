@@ -304,14 +304,15 @@
 
 					/* Populate the translated dictionary with the converted character values for each character of the input text based on the target script */
 					$.each(inputCharacterDictionary, function (index, data) {
+						debugger;
 						var currentCharacter = data.inputChar;
 						var currentCharacterScriptValue = data.inputScript;
 
 						var outputCharacterScriptValue;
 						var outputCharacter;
 
-						/* If current character's script is undefined, retain the character in original state */
-						if (currentCharacterScriptValue == -1) {
+						/* If current character's script is undefined OR matches the target script value, retain the character in original state */
+						if ((currentCharacterScriptValue == -1) || (currentCharacterScriptValue == targetScript.value)) {
 							outputCharacterScriptValue = currentCharacterScriptValue;
 							outputCharacter = currentCharacter;
 						}
