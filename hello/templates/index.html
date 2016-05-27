@@ -10,7 +10,15 @@
 	</div>
 </div>
 <div class="container">
+	<p> Translate a Kannada ಕ to a Devanagari क, a Gujarati ગ to a Malayalam ഗ! </p>
 	<hr>
+	<div> 
+		<p> To help you get started with the translation, below are a set of pre-defined unicode texts that can be used. You just need to choose a language from the dropdown to add the relevant text into the input box. </p>
+		<div>
+			<select id="sample-text-dropdown">
+			</select>
+		</div>
+	</div>
 	<div>
 		<h2>Translation Page</h2>
 		<div class="translationContainer">
@@ -57,7 +65,14 @@
 				Malayalam: { value: 7, name: "Malayalam", minrange: '0D00', maxrange: '0D7F', regexString: /[\u0D00-\u0D7F]+/g },
 			};
 
-			// TODO: Add a dictionary for Script Codes like Script_Code[0]: Devanagari
+			/* Language Codes */
+			// TODO: Add support for languages having multiple scripts - Punjabi written in Gurmukhi and Shahmukhi
+			var LANGUAGE_CODES = {
+				Sanskrit: { value: 0, name: "Sanskrit", scriptCodeValue: SCRIPT_CODES.Devanagari.value, sampleText: "यथा ह्येकेन चक्रेण न रथस्य गतिर्भवेत् | एवं परुषकारेण विना दैवं न सिद्ध्यति ||" },
+				Hindi: { value: 1, name: "Hindi", scriptCodeValue: SCRIPT_CODES.Devanagari.value, sampleText: "प्रतिभा अपनी राह स्वयं निर्धारित कर लेती है और अपना दीप स्वयं ले चलती है." },
+				Marathi: { value: 2, name: "Marathi", scriptCodeValue: SCRIPT_CODES.Devanagari.value, sampleText: "केवळ ज्ञान असून उपयोग नाही, ते कसं आणि केव्हा वापरायचं याचंही ज्ञान हवं." },
+				Kannada: { value: 3, name: "Kannada", scriptCodeValue: SCRIPT_CODES.Kannada.value, sampleText: "ಒಳ್ಳೆಯ ಮಾತುಗಳನ್ನು ಆಡಿದರೆ ಸಾಲದು. ಆ ಮಾತುಗಳು ಒಳ್ಳೆಯ ಕೆಲಸಕ್ಕೆ ಉತ್ತೇಜನ ನೀಡುವಂತೆ ಇರಬೇಕು." },
+			};
 
 			/* Represents the Target Script chosen by the user */
 			var TARGET_SCRIPT;
@@ -70,6 +85,9 @@
 			/* Target Script Dropdown */
 			var targetScriptsDropdown = $("#target-script-choice");
 
+			/* Sample Text Dropdown */
+			var sampleTextDropdown = $("#sample-text-dropdown");
+
 			/***** Event Handlers *****/
 
 			/* Page load handler to initialize data */
@@ -81,6 +99,12 @@
 			/* Target script dropdown - Change Handler. Triggered when user changes dropdown value. */
 			$("#target-script-choice").change(function () {
 				updateTargetScript();
+				detectAndTranslateScript();
+			});
+
+			/* Sample text dropdown - Change Handler. Triggered when user changes dropdown value. */
+			$("#sample-text-dropdown").change(function () {
+				updateInputText();
 				detectAndTranslateScript();
 			});
 
@@ -97,6 +121,9 @@
 				/* Bind all the SCRIPT_CODES to the target script dropdown */
 				populateDropdown(targetScriptsDropdown, SCRIPT_CODES);
 
+				/* Bind all the LANGUAGE_CODES to the sample text dropdown */
+				populateDropdown(sampleTextDropdown, LANGUAGE_CODES);
+
 				/* Make Devanagari the default target script */
 				TARGET_SCRIPT = SCRIPT_CODES.Devanagari;
 				targetScriptsDropdown.val(TARGET_SCRIPT.value);
@@ -109,7 +136,6 @@
 					/* Inject the current data inside the dropdown */
 					dropdown.append("<option value=" + data.value + ">" + data.name + "</option>");
 				});
-
 			}
 
 			/* Initialize data and controls */
@@ -128,6 +154,24 @@
 					if (script.value == currentScriptVal) {
 						/* Set the Target Script */
 						TARGET_SCRIPT = script;
+						/* Break iteration loop */
+						return false;
+					}
+				});
+			}
+
+			/* Update the input text box based on the dropdown value updated by user */
+			function updateInputText() {
+				var currentLanguageVal = $("#sample-text-dropdown :selected").val();
+
+				/* Determine the current script code */
+				$.each(LANGUAGE_CODES, function (index, language) {
+					if (language.value == currentLanguageVal) {
+
+						/* Decide the sample text based on the language script chosen by user */
+						var sampleText = language.sampleText;
+						$('#inputText').val(sampleText);
+
 						/* Break iteration loop */
 						return false;
 					}
