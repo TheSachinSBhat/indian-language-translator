@@ -10,15 +10,31 @@
 	</div>
 </div>
 <div class="container">
+	<p>Translate a Kannada ಕ to a Devanagari क, a Gujarati ગ to a Malayalam ഗ! </p>
 	<hr>
 	<div>
 		<h2>Translation Page</h2>
+		<div>
+			<div>
+				<p>To help you get started with the translation, below are a set of pre-defined unicode texts that can be used. You just need to choose a language from the dropdown to add the relevant text into the input box. </p>
+			</div>
+			<div>
+				<label>Sample Input Text</label>
+				<select id="sample-text-dropdown">
+					<option value="-1">Select Language</option>
+				</select>
+			</div>
+		</div>
+		<br />
+		<br />
 		<div class="translationContainer">
 			<div class="inputDiv">
 				<p>Input Text</p>
 				<textarea rows="10" cols="30" id="inputText"></textarea>
+				<button id="clear-input-text">Clear Text</button>
 			</div>
 			<div>
+				<label>Target Output Script</label>
 				<select id="target-script-choice">
 				</select>
 			</div>
@@ -39,392 +55,464 @@
 				<textarea rows="5" cols="30" id="identifiedScriptsText"></textarea>
 			</div>
 		</div>
-		<script type="text/javascript">
 
-			/***** Global Variables *****/
-
-			/* Enums with Unicode Script Codes
-			 * Reference: unicode.org/charts/
-			 */
-			var SCRIPT_CODES = {
-				Devanagari: { value: 0, name: "Devanagari", minrange: '0900', maxrange: '097F', regexString: /[\u0900-\u097F]+/g },
-				Bengali: { value: 1, name: "Bengali", minrange: '0980', maxrange: '09FF', regexString: /[\u0980-\u09FF]+/g },
-				Gurmukhi: { value: 2, name: "Gurmukhi", minrange: '0A00', maxrange: '0A7F', regexString: /[\u0A00-\u0A7F]+/g },
-				Gujarati: { value: 3, name: "Gujarati", minrange: '0A80', maxrange: '0AFF', regexString: /[\u0A80-\u0AFF]+/g },
-				Tamil: { value: 4, name: "Tamil", minrange: '0B80', maxrange: '0BFF', regexString: /[\u0B80-\u0BFF]+/g },
-				Telugu: { value: 5, name: "Telugu", minrange: '0C00', maxrange: '0C7F', regexString: /[\u0C00-\u0C7F]+/g },
-				Kannada: { value: 6, name: "Kannada", minrange: '0C80', maxrange: '0CFF', regexString: /[\u0C80-\u0CFF]+/g },
-				Malayalam: { value: 7, name: "Malayalam", minrange: '0D00', maxrange: '0D7F', regexString: /[\u0D00-\u0D7F]+/g },
-			};
-
-			// TODO: Add a dictionary for Script Codes like Script_Code[0]: Devanagari
-
-			/* Represents the Target Script chosen by the user */
-			var TARGET_SCRIPT;
-
-			/* Represents the Dictionary that stores the Script Value and Script Data */
-			var SCRIPT_CODE_DICTIONARY = [];
-
-			/***** UI Controls *****/
-
-			/* Target Script Dropdown */
-			var targetScriptsDropdown = $("#target-script-choice");
-
-			/***** Event Handlers *****/
-
-			/* Page load handler to initialize data */
-			$(document).ready(function () {
-				initializeControls();
-				initializeScriptCodeDictionary();
-			});
-
-			/* Target script dropdown - Change Handler. Triggered when user changes dropdown value. */
-			$("#target-script-choice").change(function () {
-				updateTargetScript();
-				detectAndTranslateScript();
-			});
-
-			/* Handler for Input Text area. Triggered whenever user changes the input text. */
-			$('#inputText').bind('keypress keyup keydown blur', function () {
-				//debugger;
-				detectAndTranslateScript();
-			});
-
-			/***** Translator Page specific functions *****/
-
-			/* Initialize data and controls */
-			function initializeControls() {
-				/* Bind all the SCRIPT_CODES to the target script dropdown */
-				populateDropdown(targetScriptsDropdown, SCRIPT_CODES);
-
-				/* Make Devanagari the default target script */
-				TARGET_SCRIPT = SCRIPT_CODES.Devanagari;
-				targetScriptsDropdown.val(TARGET_SCRIPT.value);
-			}
-
-			/* Populate the dropdown with values */
-			function populateDropdown(dropdown, dataObject) {
-				//debugger;
-				$.each(dataObject, function (index, data) {
-					/* Inject the current data inside the dropdown */
-					dropdown.append("<option value=" + data.value + ">" + data.name + "</option>");
-				});
-
-			}
-
-			/* Initialize data and controls */
-			function initializeScriptCodeDictionary() {
-				$.each(SCRIPT_CODES, function (index, script) {
-					SCRIPT_CODE_DICTIONARY[script.value] = script;
-				});
-			}
-
-			/* Update the target script based on the dropdown value updated by user */
-			function updateTargetScript() {
-				var currentScriptVal = $("#target-script-choice :selected").val();
-
-				/* Determine the current script code */
-				$.each(SCRIPT_CODES, function (index, script) {
-					if (script.value == currentScriptVal) {
-						/* Set the Target Script */
-						TARGET_SCRIPT = script;
-						/* Break iteration loop */
-						return false;
-					}
-				});
-			}
-
-			/* Refactored code for identifying script and populating target textbox according to Target Script */
-			function detectAndTranslateScript() {
-				debugger;
-
-				/* Stores the input text entered in the text box */
-				var inputText = $('#inputText').val();
-
-				/* Dictonary that stores each input text character and its script code */
-				var inputCharacterDictionary = detectScriptForText(inputText);
-
-				/* Dictonary that stores the translated character for each input text character according to the target script */
-				var translatedCharacterDictionary = convertInputToTargetScript(inputCharacterDictionary, TARGET_SCRIPT);
-
-				/* Updates the output text div based on the translated text based on the Target Script selected by the user */
-				var outputText = convertTranslatedDictionaryToText(translatedCharacterDictionary);
-				$('#outputText').val(outputText);
-
-				/* Populate the identified target scripts into the identifiedScripts Text Area */
-				var identifiedTargetScripts = identifyTargetScripts(translatedCharacterDictionary);
-				// TODO: Implement populateIdentifiedTargetScriptsDiv()
-				populateIdentifiedTargetScriptsDiv(identifiedTargetScripts);
-			}
-
-			/* Populate the Identified scripts div */
-			function populateIdentifiedTargetScriptsDiv(identifiedTargetScripts) {
-
-				var identifiedScriptsText = '';
-				//var script = identifiedTargetScripts[0];
-
-				$.each(identifiedTargetScripts, function (index, script) {
-					var scriptValue = script.scriptValue;
-					/* Ensure only valid defined scripts are added to the Identified Scripts Div */
-					if (scriptValue != -1) {
-
-						/* Retrieve the actual script name */
-						scriptName = SCRIPT_CODE_DICTIONARY[scriptValue].name;
-						identifiedScriptsText += scriptName + ' ';
-					}
-				});
-
-				$("#identifiedScriptsText").val(identifiedScriptsText);
-			}
-
-			/* Original old code for identifying script and populating target textbox according to Target Script */
-			function detectAndTranslateScript_Original_Code() {
-				var inputText = $('#inputText').val();
-				// Initialize string variables
-				var outputString = '';
-				var unicodeDecimalString = '';
-				var unicodeHexString = '';
-				var identifiedScriptsString = '';
-				// Loop through each character of the input text
-				for (position = 0; position < inputText.length; position++) {
-					// Obtain the Unicode of the current character in Decimal format
-					var character = inputText.charAt(position);
-					var inputCode = inputText.charCodeAt(position);
-					unicodeDecimalString += inputCode + ' ';
-					// Obtain the Unicode of the current character in Hexa-Decimal format
-					var hexString = decimalToHex(inputCode, 4);
-					// langCode stores the enum value for the Unicode Script Code of the current character
-					var currentScript;
-					// TODO: Find out a better alternative in place of for loop
-					var scripts = Object.keys(SCRIPT_CODES), totalCost = 0;
-					// Find out if the current character falls under the unicode range of any defined script
-					for (var i = scripts.length; i--;) {
-						//$.each(SCRIPT_CODES, function (index, currentScript) {
-
-						// Assign the current script present at ith location to the current script variable
-						currentScript = SCRIPT_CODES[scripts[i]];
-						//var regexString = /[\u0900-\u097F]+/g;
-						//if( character.match(/[\u0900-\u097F]+/g) )
-						//if (character.match("/[\\u" + SCRIPT_CODES.Devanagari.minrange + "-\\u" + SCRIPT_CODES.Devanagari.maxrange + "]+/g"))
-						// Check if the current character falls under the Unicode range for the currentScript
-						if (character.match(currentScript.regexString)) {
-							// Add the current script to the list of identified scripts
-							identifiedScriptsString += currentScript.name + ' ';
-							/* Break iteration loop */
-							return false;
-						}
-						// If the Target Script doesnt match the currentScript, convert the current character to the target scripts unicode
-						if (TARGET_SCRIPT != currentScript) {
-							// Calculate Unicode offset
-							var unicodeOffset;
-							var targetScriptMinRange = "0x" + TARGET_SCRIPT.minrange;
-							var currentScriptMinRange = "0x" + currentScript.minrange;
-							var unicodeDiff = (targetScriptMinRange - currentScriptMinRange) & 0xffff;
-							console.log("TARGET_SCRIPT: " + TARGET_SCRIPT.name + ' : ' + targetScriptMinRange + ' ' + "CurrentScript: " + currentScript.name + ' : ' + currentScriptMinRange);
-							console.log("Unicode diff:" + unicodeDiff.toString(16));
-							// Convert the unicode of the current character
-						}
-						//});
-					}
-					unicodeHexString += hexString + ' ';
-					// Append the Integer Unicode value to the output string that would get displayed in Output Div
-					outputString += String.fromCharCode(inputCode);
-				}
-				// Update Output Div
-				$('#outputText').val(outputString);
-				// Update Unicode Divs
-				$('#unicodeDecimalText').val(unicodeDecimalString);
-				$('#unicodeHexText').val(unicodeHexString);
-				// Update Identified Scripts Div
-				$('#identifiedScriptsText').val(identifiedScriptsString);
-			}
-
-			/***** Generic Functions *****/
-
-			/* Convert decimal value to Hexadecimal */
-			function decimalToHex(d, padding) {
-				var hex = Number(d).toString(16);
-				padding = typeof (padding) === "undefined" || padding === null ? padding = 2 : padding;
-				while (hex.length < padding) {
-					hex = "0" + hex;
-				}
-				return hex;
-			}
-
-			/* Detect the Script for the current input text */
-			function detectScriptForText(inputText) {
-
-				/* Dictonary that stores the each input text character and its script code */
-				var inputCharacterDictionary = [];
-
-				/* Populate the input character dictionary with the detected script value for each character from the input text */
-				inputText.split('').forEach(function (currentCharacter) {
-					var currentCharacterScriptValue = detectScriptForCharacter(currentCharacter);
-
-					inputCharacterDictionary.push({
-						inputChar: currentCharacter,
-						inputScript: currentCharacterScriptValue
-					});
-				});
-
-				/* Return the dictionary with the detected script values for each character of the input text */
-				return inputCharacterDictionary;
-			}
-
-			/* Detect the Script for the current character */
-			function detectScriptForCharacter(currentCharacter) {
-
-				/* Detected Script is initialized to -1. -1 Indicates script code undetected */
-				var detectedScriptValue = -1;
-
-				/* Determine the current character's script code */
-				$.each(SCRIPT_CODES, function (index, script) {
-
-					/* Find out if the current character falls under the unicode range of any available SCRIPT_CODES */
-					if (currentCharacter.match(script.regexString)) {
-						/* Update the Detected Script value if the current character falls under the current script's unicode range */
-						detectedScriptValue = script.value;
-						/* Break iteration loop */
-						return false;
-					}
-				});
-
-				/* Return either the detected value or -1 if it cannot be determined */
-				return detectedScriptValue;
-			}
-
-			/* Convert the input text based on the target script */
-			function convertInputToTargetScript(inputCharacterDictionary, targetScript) {
-				/* Dictonary that stores the translated character for each input text character according to the target script */
-				var translatedCharacterDictionary = [];
-
-				/* Populate the translated dictionary with the converted character values for each character of the input text based on the target script */
-				$.each(inputCharacterDictionary, function (index, data) {
-					//debugger;
-					var currentCharacter = data.inputChar;
-					var currentCharacterScriptValue = data.inputScript;
-
-					var outputCharacterScriptValue;
-					var outputCharacter;
-
-					/* If current character's script is undefined OR matches the target script value, retain the character in original state */
-					if ((currentCharacterScriptValue == -1) || (currentCharacterScriptValue == targetScript.value)) {
-						outputCharacterScriptValue = currentCharacterScriptValue;
-						outputCharacter = currentCharacter;
-					}
-						/* If current character's script is identified, proceed with conversion to equivalent target script character */
-					else {
-						outputCharacterScriptValue = targetScript.value;
-						outputCharacter = convertInputCharacterToTargetCharacter(currentCharacter, currentCharacterScriptValue, outputCharacterScriptValue);
-					}
-
-					translatedCharacterDictionary.push({
-						inputChar: currentCharacter,
-						inputScript: currentCharacterScriptValue,
-						outputChar: outputCharacter,
-						outputScript: outputCharacterScriptValue
-					});
-				});
-
-				/* Return the translated dictionary with the converted character values for each character of the input text based on the target script */
-				return translatedCharacterDictionary;
-			}
-
-			/* Convert the input character to target character based on the target script */
-			function convertInputCharacterToTargetCharacter(currentCharacter, currentCharacterScriptValue, outputCharacterScriptValue) {
-				debugger;
-				var targetCharacter = currentCharacter;
-
-				/* Convert input character into target script only if input script is defined in the SCRIPT_CODES */
-				if (currentCharacterScriptValue != -1) {
-
-					var inputScript = SCRIPT_CODE_DICTIONARY[currentCharacterScriptValue];
-					var outputScript = SCRIPT_CODE_DICTIONARY[outputCharacterScriptValue];
-
-					//currentCharacter = 'অ';
-
-					//kannadaScriptUnicodeMin = 0x0C80;
-					//devanagariScriptUnicodeMin = 0x0900;
-					//bengaliScriptUnicodeMin = 0x0980;
-
-					/* Min unicode range of input and target scripts */
-					var inputScriptUnicodeMin = "0x" + inputScript.minrange;
-					var outputScriptUnicodeMin = "0x" + outputScript.minrange;
-
-					var targetCharacterUnicode;
-
-					/* Unicode of input character */
-					var currentCharacterUnicode = decimalToHex(currentCharacter.charCodeAt(0), 4);
-
-					if (outputScriptUnicodeMin > inputScriptUnicodeMin) {
-						/* Unicode difference of input and target scripts */
-						var scriptUnicodeDiff = "0x" + decimalToHex(outputScriptUnicodeMin - inputScriptUnicodeMin, 4);
-
-						/* Add offset to inputCharacter to get the equivalent unicode value of target character */
-						targetCharacterUnicode = "0x" + addHexNumbers(parseInt(currentCharacterUnicode, 10), scriptUnicodeDiff)
-					}
-					else if (inputScriptUnicodeMin > outputScriptUnicodeMin) {
-						/* Unicode difference of input and target scripts */
-						var scriptUnicodeDiff = "0x" + decimalToHex(inputScriptUnicodeMin - outputScriptUnicodeMin, 4);
-
-						/* Add offset to inputCharacter to get the equivalent unicode value of target character */
-						//targetCharacterUnicode = "0x" + decimalToHex(parseInt(currentCharacterUnicode, 10) - scriptUnicodeDiff, 4);
-						targetCharacterUnicode = "0x" + decimalToHex(parseInt(currentCharacterUnicode, 16) - scriptUnicodeDiff, 4);
-
-					}
-
-					/* Convert unicode value to Character */
-					targetCharacter = String.fromCharCode(targetCharacterUnicode)
-				}
-
-				return targetCharacter;
-			}
-
-			/* Convert the translated dictionary to a text string */
-			function convertTranslatedDictionaryToText(translatedCharacterDictionary) {
-				/* Stores the output text */
-				var outputText = '';
-
-				/* Read each output character of the translated dictionary and append it to the output text */
-				$.each(translatedCharacterDictionary, function (index, data) {
-					outputText += data.outputChar;
-				});
-
-				/* Return the updated output text */
-				return outputText;
-			}
-
-			/* Collect all the script values that got identified from the input text */
-			function identifyTargetScripts(translatedCharacterDictionary) {
-				/* Stores all the identified scripts from the input text */
-				var identifiedTargetScripts = [];
-
-				var scriptDictionary = [];
-
-				/* Read each input script from the translated dictionary and append the uniques ones to the identifiedTargetScripts */
-				$.each(translatedCharacterDictionary, function (index, data) {
-					var script = data.inputScript;
-					/* Add the input script value to the dictionary only if it is not added earlier */
-					if (typeof (scriptDictionary[script]) == "undefined") {
-
-						// TODO: Add the exact SCRIPT_DATA instead of 0
-						scriptDictionary[script] = script;
-						if (script != -1) {
-							identifiedTargetScripts.push({
-								scriptValue: script,
-							});
-						}
-					}
-				});
-
-				/* Return all the unique identified target scripts */
-				return identifiedTargetScripts;
-			}
-
-			function addHexNumbers(c1, c2) {
-				var hexStr = (parseInt(c1, 16) + parseInt(c2, 16)).toString(16);				while (hexStr.length < 4) { hexStr = '0' + hexStr; } // Zero pad.				return hexStr;
-			}
-		</script>
 	</div>
 </div>
+<script type="text/javascript">
+
+	/***** Global Variables *****/
+
+	/* Enums with Unicode Script Codes
+	 * Reference: unicode.org/charts/
+	 */
+	var SCRIPT_CODES = {
+		Devanagari: { value: 0, name: "Devanagari", minrange: '0900', maxrange: '097F', regexString: /[\u0900-\u097F]+/g },
+		Bengali: { value: 1, name: "Bengali", minrange: '0980', maxrange: '09FF', regexString: /[\u0980-\u09FF]+/g },
+		Gurmukhi: { value: 2, name: "Gurmukhi", minrange: '0A00', maxrange: '0A7F', regexString: /[\u0A00-\u0A7F]+/g },
+		Gujarati: { value: 3, name: "Gujarati", minrange: '0A80', maxrange: '0AFF', regexString: /[\u0A80-\u0AFF]+/g },
+		Tamil: { value: 4, name: "Tamil", minrange: '0B80', maxrange: '0BFF', regexString: /[\u0B80-\u0BFF]+/g },
+		Telugu: { value: 5, name: "Telugu", minrange: '0C00', maxrange: '0C7F', regexString: /[\u0C00-\u0C7F]+/g },
+		Kannada: { value: 6, name: "Kannada", minrange: '0C80', maxrange: '0CFF', regexString: /[\u0C80-\u0CFF]+/g },
+		Malayalam: { value: 7, name: "Malayalam", minrange: '0D00', maxrange: '0D7F', regexString: /[\u0D00-\u0D7F]+/g },
+	};
+
+	/* Language Codes */
+	// TODO: Add support for languages having multiple scripts - Punjabi written in Gurmukhi and Shahmukhi
+	var LANGUAGE_CODES = {
+		Sanskrit: { value: 0, name: "Sanskrit", scriptCodeValue: SCRIPT_CODES.Devanagari.value, sampleText: "यथा ह्येकेन चक्रेण न रथस्य गतिर्भवेत् | एवं परुषकारेण विना दैवं न सिद्ध्यति ||" },
+		Hindi: { value: 1, name: "Hindi", scriptCodeValue: SCRIPT_CODES.Devanagari.value, sampleText: "प्रतिभा अपनी राह स्वयं निर्धारित कर लेती है और अपना दीप स्वयं ले चलती है." },
+		Marathi: { value: 2, name: "Marathi", scriptCodeValue: SCRIPT_CODES.Devanagari.value, sampleText: "केवळ ज्ञान असून उपयोग नाही, ते कसं आणि केव्हा वापरायचं याचंही ज्ञान हवं." },
+		Kannada: { value: 3, name: "Kannada", scriptCodeValue: SCRIPT_CODES.Kannada.value, sampleText: "ಒಳ್ಳೆಯ ಮಾತುಗಳನ್ನು ಆಡಿದರೆ ಸಾಲದು. ಆ ಮಾತುಗಳು ಒಳ್ಳೆಯ ಕೆಲಸಕ್ಕೆ ಉತ್ತೇಜನ ನೀಡುವಂತೆ ಇರಬೇಕು." },
+		Tamil: { value: 4, name: "Tamil", scriptCodeValue: SCRIPT_CODES.Tamil.value, sampleText: "என்னை சந்திப்பவர்கள் வெற்றியடையாமல் போவதில்லை இப்படிக்கு தோல்வி" },
+		Gujarati: { value: 5, name: "Gujarati", scriptCodeValue: SCRIPT_CODES.Gujarati.value, sampleText: "જેની પાસે ધીરજ છે, એ જિંદગી માં જે ચાહે એ મેળવી શકે છે" },
+	};
+
+	/* Represents the Target Script chosen by the user */
+	var TARGET_SCRIPT;
+
+	/* Represents the Dictionary that stores the Script Value and Script Data */
+	var SCRIPT_CODE_DICTIONARY = [];
+
+	/***** UI Controls *****/
+
+	/* Target Script Dropdown */
+	var targetScriptsDropdown = $("#target-script-choice");
+
+	/* Sample Text Dropdown */
+	var sampleTextDropdown = $("#sample-text-dropdown");
+
+	/***** Event Handlers *****/
+
+	/* Page load handler to initialize data */
+	$(document).ready(function () {
+		initializeControls();
+		initializeScriptCodeDictionary();
+	});
+
+	/* Target script dropdown - Change Handler. Triggered when user changes dropdown value. */
+	$("#target-script-choice").change(function () {
+		updateTargetScript();
+		detectAndTranslateScript();
+	});
+
+	/* Sample text dropdown - Change Handler. Triggered when user changes dropdown value. */
+	$("#sample-text-dropdown").change(function () {
+		updateInputText();
+		detectAndTranslateScript();
+	});
+
+	/* Handler for Input Text area. Triggered whenever user changes the input text. */
+	$('#inputText').bind('keypress keyup keydown blur', function () {
+		//debugger;
+		detectAndTranslateScript();
+	});
+
+	/* Handler for clear input text button. Triggered whenever user clicks on the button. */
+	$("#clear-input-text").click(function () {
+		/* Clear input textbox */
+		$('#inputText').val('');
+		/* Call translation method to ensure other relevant fields are updated accordingly */
+		detectAndTranslateScript();
+	});
+
+	/***** Translator Page specific functions *****/
+
+	/* Initialize data and controls */
+	function initializeControls() {
+		/* Bind all the SCRIPT_CODES to the target script dropdown */
+		populateDropdown(targetScriptsDropdown, SCRIPT_CODES);
+
+		/* Bind all the LANGUAGE_CODES to the sample text dropdown */
+		populateDropdown(sampleTextDropdown, LANGUAGE_CODES);
+
+		/* Make Devanagari the default target script */
+		TARGET_SCRIPT = SCRIPT_CODES.Devanagari;
+		targetScriptsDropdown.val(TARGET_SCRIPT.value);
+	}
+
+	/* Populate the dropdown with values */
+	function populateDropdown(dropdown, dataObject) {
+		//debugger;
+		$.each(dataObject, function (index, data) {
+			/* Inject the current data inside the dropdown */
+			dropdown.append("<option value=" + data.value + ">" + data.name + "</option>");
+		});
+	}
+
+	/* Initialize data and controls */
+	function initializeScriptCodeDictionary() {
+		$.each(SCRIPT_CODES, function (index, script) {
+			SCRIPT_CODE_DICTIONARY[script.value] = script;
+		});
+	}
+
+	/* Update the target script based on the dropdown value updated by user */
+	function updateTargetScript() {
+		var currentScriptVal = $("#target-script-choice :selected").val();
+
+		/* Determine the current script code */
+		$.each(SCRIPT_CODES, function (index, script) {
+			if (script.value == currentScriptVal) {
+				/* Set the Target Script */
+				TARGET_SCRIPT = script;
+				/* Break iteration loop */
+				return false;
+			}
+		});
+	}
+
+	/* Update the input text box based on the dropdown value updated by user */
+	function updateInputText() {
+		var currentLanguageVal = $("#sample-text-dropdown :selected").val();
+
+		/* Determine the current script code */
+		$.each(LANGUAGE_CODES, function (index, language) {
+			if (language.value == currentLanguageVal) {
+
+				/* Decide the sample text based on the language script chosen by user */
+				var sampleText = language.sampleText;
+				$('#inputText').val(sampleText);
+
+				/* Break iteration loop */
+				return false;
+			}
+		});
+	}
+
+	/* Refactored code for identifying script and populating target textbox according to Target Script */
+	function detectAndTranslateScript() {
+		debugger;
+
+		/* Stores the input text entered in the text box */
+		var inputText = $('#inputText').val();
+
+		/* Dictonary that stores each input text character and its script code */
+		var inputCharacterDictionary = detectScriptForText(inputText);
+
+		/* Dictonary that stores the translated character for each input text character according to the target script */
+		var translatedCharacterDictionary = convertInputToTargetScript(inputCharacterDictionary, TARGET_SCRIPT);
+
+		/* Updates the output text div based on the translated text based on the Target Script selected by the user */
+		var outputText = convertTranslatedDictionaryToText(translatedCharacterDictionary);
+		$('#outputText').val(outputText);
+
+		/* Populate the identified target scripts into the identifiedScripts Text Area */
+		var identifiedTargetScripts = identifyTargetScripts(translatedCharacterDictionary);
+		// TODO: Implement populateIdentifiedTargetScriptsDiv()
+		populateIdentifiedTargetScriptsDiv(identifiedTargetScripts);
+	}
+
+	/* Populate the Identified scripts div */
+	function populateIdentifiedTargetScriptsDiv(identifiedTargetScripts) {
+
+		var identifiedScriptsText = '';
+		//var script = identifiedTargetScripts[0];
+
+		$.each(identifiedTargetScripts, function (index, script) {
+			var scriptValue = script.scriptValue;
+			/* Ensure only valid defined scripts are added to the Identified Scripts Div */
+			if (scriptValue != -1) {
+
+				/* Retrieve the actual script name */
+				scriptName = SCRIPT_CODE_DICTIONARY[scriptValue].name;
+				identifiedScriptsText += scriptName + ' ';
+			}
+		});
+
+		$("#identifiedScriptsText").val(identifiedScriptsText);
+	}
+
+	/* Original old code for identifying script and populating target textbox according to Target Script */
+	function detectAndTranslateScript_Original_Code() {
+		var inputText = $('#inputText').val();
+		// Initialize string variables
+		var outputString = '';
+		var unicodeDecimalString = '';
+		var unicodeHexString = '';
+		var identifiedScriptsString = '';
+		// Loop through each character of the input text
+		for (position = 0; position < inputText.length; position++) {
+			// Obtain the Unicode of the current character in Decimal format
+			var character = inputText.charAt(position);
+			var inputCode = inputText.charCodeAt(position);
+			unicodeDecimalString += inputCode + ' ';
+			// Obtain the Unicode of the current character in Hexa-Decimal format
+			var hexString = decimalToHex(inputCode, 4);
+			// langCode stores the enum value for the Unicode Script Code of the current character
+			var currentScript;
+			// TODO: Find out a better alternative in place of for loop
+			var scripts = Object.keys(SCRIPT_CODES), totalCost = 0;
+			// Find out if the current character falls under the unicode range of any defined script
+			for (var i = scripts.length; i--;) {
+				//$.each(SCRIPT_CODES, function (index, currentScript) {
+
+				// Assign the current script present at ith location to the current script variable
+				currentScript = SCRIPT_CODES[scripts[i]];
+				//var regexString = /[\u0900-\u097F]+/g;
+				//if( character.match(/[\u0900-\u097F]+/g) )
+				//if (character.match("/[\\u" + SCRIPT_CODES.Devanagari.minrange + "-\\u" + SCRIPT_CODES.Devanagari.maxrange + "]+/g"))
+				// Check if the current character falls under the Unicode range for the currentScript
+				if (character.match(currentScript.regexString)) {
+					// Add the current script to the list of identified scripts
+					identifiedScriptsString += currentScript.name + ' ';
+					/* Break iteration loop */
+					return false;
+				}
+				// If the Target Script doesnt match the currentScript, convert the current character to the target scripts unicode
+				if (TARGET_SCRIPT != currentScript) {
+					// Calculate Unicode offset
+					var unicodeOffset;
+					var targetScriptMinRange = "0x" + TARGET_SCRIPT.minrange;
+					var currentScriptMinRange = "0x" + currentScript.minrange;
+					var unicodeDiff = (targetScriptMinRange - currentScriptMinRange) & 0xffff;
+					console.log("TARGET_SCRIPT: " + TARGET_SCRIPT.name + ' : ' + targetScriptMinRange + ' ' + "CurrentScript: " + currentScript.name + ' : ' + currentScriptMinRange);
+					console.log("Unicode diff:" + unicodeDiff.toString(16));
+					// Convert the unicode of the current character
+				}
+				//});
+			}
+			unicodeHexString += hexString + ' ';
+			// Append the Integer Unicode value to the output string that would get displayed in Output Div
+			outputString += String.fromCharCode(inputCode);
+		}
+		// Update Output Div
+		$('#outputText').val(outputString);
+		// Update Unicode Divs
+		$('#unicodeDecimalText').val(unicodeDecimalString);
+		$('#unicodeHexText').val(unicodeHexString);
+		// Update Identified Scripts Div
+		$('#identifiedScriptsText').val(identifiedScriptsString);
+	}
+
+	/***** Generic Functions *****/
+
+	/* Convert decimal value to Hexadecimal */
+	function decimalToHex(d, padding) {
+		var hex = Number(d).toString(16);
+		padding = typeof (padding) === "undefined" || padding === null ? padding = 2 : padding;
+		while (hex.length < padding) {
+			hex = "0" + hex;
+		}
+		return hex;
+	}
+
+	/* Detect the Script for the current input text */
+	function detectScriptForText(inputText) {
+
+		/* Dictonary that stores the each input text character and its script code */
+		var inputCharacterDictionary = [];
+
+		/* Populate the input character dictionary with the detected script value for each character from the input text */
+		inputText.split('').forEach(function (currentCharacter) {
+			var currentCharacterScriptValue = detectScriptForCharacter(currentCharacter);
+
+			inputCharacterDictionary.push({
+				inputChar: currentCharacter,
+				inputScript: currentCharacterScriptValue
+			});
+		});
+
+		/* Return the dictionary with the detected script values for each character of the input text */
+		return inputCharacterDictionary;
+	}
+
+	/* Detect the Script for the current character */
+	function detectScriptForCharacter(currentCharacter) {
+
+		/* Detected Script is initialized to -1. -1 Indicates script code undetected */
+		var detectedScriptValue = -1;
+
+		/* Determine the current character's script code */
+		$.each(SCRIPT_CODES, function (index, script) {
+
+			/* Find out if the current character falls under the unicode range of any available SCRIPT_CODES */
+			if (currentCharacter.match(script.regexString)) {
+				/* Update the Detected Script value if the current character falls under the current script's unicode range */
+				detectedScriptValue = script.value;
+				/* Break iteration loop */
+				return false;
+			}
+		});
+
+		/* Return either the detected value or -1 if it cannot be determined */
+		return detectedScriptValue;
+	}
+
+	/* Convert the input text based on the target script */
+	function convertInputToTargetScript(inputCharacterDictionary, targetScript) {
+		/* Dictonary that stores the translated character for each input text character according to the target script */
+		var translatedCharacterDictionary = [];
+
+		/* Populate the translated dictionary with the converted character values for each character of the input text based on the target script */
+		$.each(inputCharacterDictionary, function (index, data) {
+			//debugger;
+			var currentCharacter = data.inputChar;
+			var currentCharacterScriptValue = data.inputScript;
+
+			var outputCharacterScriptValue;
+			var outputCharacter;
+
+			/* If current character's script is undefined OR matches the target script value, retain the character in original state */
+			if ((currentCharacterScriptValue == -1) || (currentCharacterScriptValue == targetScript.value)) {
+				outputCharacterScriptValue = currentCharacterScriptValue;
+				outputCharacter = currentCharacter;
+			}
+				/* If current character's script is identified, proceed with conversion to equivalent target script character */
+			else {
+				outputCharacterScriptValue = targetScript.value;
+				outputCharacter = convertInputCharacterToTargetCharacter(currentCharacter, currentCharacterScriptValue, outputCharacterScriptValue);
+			}
+
+			translatedCharacterDictionary.push({
+				inputChar: currentCharacter,
+				inputScript: currentCharacterScriptValue,
+				outputChar: outputCharacter,
+				outputScript: outputCharacterScriptValue
+			});
+		});
+
+		/* Return the translated dictionary with the converted character values for each character of the input text based on the target script */
+		return translatedCharacterDictionary;
+	}
+
+	/* Convert the input character to target character based on the target script */
+	function convertInputCharacterToTargetCharacter(currentCharacter, currentCharacterScriptValue, outputCharacterScriptValue) {
+		debugger;
+		var targetCharacter = currentCharacter;
+
+		/* Convert input character into target script only if input script is defined in the SCRIPT_CODES */
+		if (currentCharacterScriptValue != -1) {
+
+			var inputScript = SCRIPT_CODE_DICTIONARY[currentCharacterScriptValue];
+			var outputScript = SCRIPT_CODE_DICTIONARY[outputCharacterScriptValue];
+
+			//currentCharacter = 'অ';
+
+			//kannadaScriptUnicodeMin = 0x0C80;
+			//devanagariScriptUnicodeMin = 0x0900;
+			//bengaliScriptUnicodeMin = 0x0980;
+
+			/* Min unicode range of input and target scripts */
+			var inputScriptUnicodeMin = "0x" + inputScript.minrange;
+			var outputScriptUnicodeMin = "0x" + outputScript.minrange;
+
+			var targetCharacterUnicode;
+
+			/* Unicode of input character */
+			var currentCharacterUnicode = decimalToHex(currentCharacter.charCodeAt(0), 4);
+
+			if (outputScriptUnicodeMin > inputScriptUnicodeMin) {
+				/* Unicode difference of input and target scripts */
+				var scriptUnicodeDiff = "0x" + decimalToHex(outputScriptUnicodeMin - inputScriptUnicodeMin, 4);
+
+				/* Add offset to inputCharacter to get the equivalent unicode value of target character */
+				//targetCharacterUnicode = "0x" + addHexNumbers(parseInt(currentCharacterUnicode, 10), scriptUnicodeDiff)
+				targetCharacterUnicode = "0x" + addHexNumbers(currentCharacterUnicode, scriptUnicodeDiff);
+			}
+			else if (inputScriptUnicodeMin > outputScriptUnicodeMin) {
+				/* Unicode difference of input and target scripts */
+				var scriptUnicodeDiff = "0x" + decimalToHex(inputScriptUnicodeMin - outputScriptUnicodeMin, 4);
+
+				/* Add offset to inputCharacter to get the equivalent unicode value of target character */
+				//targetCharacterUnicode = "0x" + decimalToHex(parseInt(currentCharacterUnicode, 10) - scriptUnicodeDiff, 4);
+				targetCharacterUnicode = "0x" + decimalToHex(parseInt(currentCharacterUnicode, 16) - scriptUnicodeDiff, 4);
+				//targetCharacterUnicode = "0x" + decimalToHex(currentCharacterUnicode - scriptUnicodeDiff, 4);
+			}
+
+			/* Convert unicode value to Character */
+			targetCharacter = String.fromCharCode(targetCharacterUnicode)
+		}
+
+		// TODO: Do more research from this onenote page - Regex Cheat-Sheet
+		// http://stackoverflow.com/questions/11271477/javascript-regex-to-specify-what-is-allowed-rather-than-what-is-not
+		// https://www.cheatography.com/davechild/cheat-sheets/regular-expressions/
+		// onenote:///F:\OneNote%20Docs\NIK\Natural%20Language%20Engine.one#Regex%20Cheat-Sheet&section-id={65037F1F-D437-492B-991F-A61201A14E2C}&page-id={40A77D4E-0C7B-4FA0-B81E-5DE1D0EE0866}&end
+
+		var targetCharacterNull_1 = targetCharacter.search("঳");
+
+		var targetCharacterNull = (targetCharacter === '঳') ? true : false;
+		var targetStringNull = (targetCharacter === "঳") ? true : false;
+
+		/* If the targetCharacter is undefined, keep going back in the unicode table until we find a defined character */
+		if (targetCharacter === "঳" || targetCharacter === '঳') {
+
+			/* Keep going back in the unicode table until we find a defined character */
+			while (targetCharacter === "঳" || targetCharacter === '঳') {
+
+				/* Find out previous character */
+				targetCharacterUnicode = "0x" + decimalToHex(targetCharacterUnicode - 1, 4);
+
+				/* Convert unicode value to Character */
+				targetCharacter = String.fromCharCode(targetCharacterUnicode)
+			}
+		}
+
+		return targetCharacter;
+	}
+
+	/* Convert the translated dictionary to a text string */
+	function convertTranslatedDictionaryToText(translatedCharacterDictionary) {
+		/* Stores the output text */
+		var outputText = '';
+
+		/* Read each output character of the translated dictionary and append it to the output text */
+		$.each(translatedCharacterDictionary, function (index, data) {
+			outputText += data.outputChar;
+		});
+
+		/* Return the updated output text */
+		return outputText;
+	}
+
+	/* Collect all the script values that got identified from the input text */
+	function identifyTargetScripts(translatedCharacterDictionary) {
+		/* Stores all the identified scripts from the input text */
+		var identifiedTargetScripts = [];
+
+		var scriptDictionary = [];
+
+		/* Read each input script from the translated dictionary and append the uniques ones to the identifiedTargetScripts */
+		$.each(translatedCharacterDictionary, function (index, data) {
+			var script = data.inputScript;
+			/* Add the input script value to the dictionary only if it is not added earlier */
+			if (typeof (scriptDictionary[script]) == "undefined") {
+
+				// TODO: Add the exact SCRIPT_DATA instead of 0
+				scriptDictionary[script] = script;
+				if (script != -1) {
+					identifiedTargetScripts.push({
+						scriptValue: script,
+					});
+				}
+			}
+		});
+
+		/* Return all the unique identified target scripts */
+		return identifiedTargetScripts;
+	}
+
+	function addHexNumbers(c1, c2) {
+		var hexStr = (parseInt(c1, 16) + parseInt(c2, 16)).toString(16);		while (hexStr.length < 4) { hexStr = '0' + hexStr; } // Zero pad.		return hexStr;
+	}
+</script>
 {% endblock %}
